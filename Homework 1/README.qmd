@@ -16,7 +16,7 @@ options(digits = 6)
 rar_sim <- function(
     N             = 228, # total number of patients to be allocated in the trial
     interim       = 40, # size of each interim analysis when RAR is used
-    trt_effect    = rep(0.35, 4), # treatment effect
+    trt_effect    = c(0.35, 0.45, 0.55, 0.65), # treatment effect
     alpha         = 0.35, # alpha for all the arms in beta distribution
     beta          = 0.65, # beta for all the arms in beta distribution
     K             = 1000, # number of draws in posterior distribution
@@ -68,13 +68,14 @@ rar_sim <- function(
     return(c(v0,vt)/sum(c(v0,vt)))
   }
   
-  # function 5 - calculate the probability that each treatment arm is better than control
+  # function 5 - calculate the cumulative probability of picking successively better arms
   # input:
   #   post_mat - posterior matrix
   # output:
   #   probability that each treatment arm is better than control in a vector (pt_lt_p0)
-  prob_pt_lt_p0 <- function(post_mat) {
-    sapply(2:4, \(i) mean(post_mat[,i] > post_mat[,1]))
+  cum_prob_best <- function(post_mat) {
+    best_arm <- apply(post_mat, 1, which.max)
+    return(sapply(list(c(2,3,4), c(3,4), 4), \(x) mean(best_arm %in% x)))
   }
   
   # define result components
@@ -82,7 +83,7 @@ rar_sim <- function(
   names(res) <- c(
     "Design",
     "Num. of patients allocated (nt)", "Num. of successes (sum_yt)", 
-    "Pr(post_prob_t > post_prob_0)", "Conclusion"
+    "Cum. prob. of best", "Conclusion"
   )
   res$`Num. of patients allocated (nt)` <- res$`Num. of successes (sum_yt)` <- matrix(ncol = 4, nrow = 0)
   
@@ -102,14 +103,14 @@ rar_sim <- function(
     # 4. if the allocation for the whole trial has not been completed, calculate the adaptive allocation probability
     if(sum(res$`Num. of patients allocated (nt)`) < N) alloc_prob <- adapt_allocpr(post_mat, nt)
     # 5. else, calculate the probability that each treatment arm is better than control
-    else res$`Pr(post_prob_t > post_prob_0)` <- prob_pt_lt_p0(post_mat)
+    else res$`Cum. prob. of best` <- cum_prob_best(post_mat)
   }
   
   colnames(res$`Num. of patients allocated (nt)`) <- colnames(res$`Num. of successes (sum_yt)`) <- 
     c("Ctrl", "Arm1", "Arm2", "Arm3")
   rownames(res$`Num. of patients allocated (nt)`) <- rownames(res$`Num. of successes (sum_yt)`) <- 
     1:nrow(res$`Num. of patients allocated (nt)`)
-  names(res$`Pr(post_prob_t > post_prob_0)`) <- c("Arm1", "Arm2", "Arm3")
+  names(res$`Cum. prob. of best`) <- c("Third best", "Second best", "Best")
   if(rar) {
     res$Design <- "Response-adaptive randomization (RAR)"
     res$`Num. of patients allocated (nt)` <- addmargins(res$`Num. of patients allocated (nt)`)
@@ -121,7 +122,7 @@ rar_sim <- function(
   }
   res$Conclusion <- paste0(
     "Comparing to the threshold of ", delta, ", the trial is a ", 
-    ifelse(max(res$`Pr(post_prob_t > post_prob_0)`) > delta, "success.", "failure.")
+    ifelse(max(res$`Cum. prob. of best`) > delta, "success.", "failure.")
   )
   return(res)
 }
