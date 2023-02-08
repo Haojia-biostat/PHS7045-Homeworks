@@ -1,0 +1,91 @@
+---
+title: "Homework 1b - Data Wrangling"
+author: "Haojia Li"
+format: 
+  gfm: default
+date: "`r Sys.Date()`"
+---
+
+The learning objectives are to conduct data wrangling and generate some summary statistics.
+
+You will need to download two datasets from https://github.com/USCbiostats/data-science-data. The [individual](https://raw.githubusercontent.com/USCbiostats/data-science-data/master/01_chs/chs_individual.csv) and [regional](https://raw.githubusercontent.com/USCbiostats/data-science-data/master/01_chs/chs_regional.csv) CHS datasets in `01_chs`.
+The individual data includes personal and health characteristics of children in 12 communities across Southern California. The regional data include air quality measurements at the community level. 
+Once downloaded, you can merge these datasets using the location variable. Once
+combined, you will need to do the following:
+
+```{r}
+# load data.table
+library(data.table)
+# download data
+individual <- fread("https://raw.githubusercontent.com/USCbiostats/data-science-data/master/01_chs/chs_individual.csv")
+regional <- fread("https://raw.githubusercontent.com/USCbiostats/data-science-data/master/01_chs/chs_regional.csv")
+# merge data
+intersect(colnames(individual), colnames(regional))
+dat <- merge(individual, regional, all.x = T)
+```
+
+1. After merging the data, make sure you don’t have any duplicates by counting
+the number of rows. Make sure it matches.
+
+In the case of missing values, impute data using the average within the
+variables "male" and "hispanic." If you are interested (and feel adventurous)
+in the theme of Data Imputation, take a look at this paper on "Multiple Imputation"
+using the Amelia R package [here](https://gking.harvard.edu/files/gking/files/amelia_jss.pdf).
+
+```{r}
+# number of obs
+nrow(dat)
+# number of unique individual
+length(unique(dat$sid))
+
+# impute missing values in male and hispanic
+mean_male <- mean(dat$male, na.rm = T)
+mean_hispanic <- mean(dat$hispanic, na.rm = T)
+dat[, male     := fifelse(male == NA_integer_, mean_male, male)]
+dat[, hispanic := fifelse(hispanic == NA_integer_, mean_hispanic, hispanic)]
+
+```
+
+2. Create a new categorical variable named “obesity_level” using the BMI measurement
+(underweight BMI<14; normal BMI 14-22; overweight BMI 22-24; obese BMI>24).
+To make sure the variable is rightly coded, create a summary table that contains
+the minimum BMI, maximum BMI, and the total number of observations per category.
+
+```{r}
+dat[, obesity_level := cut(bmi, c(0, 14, 22, 24, Inf), labels = c("underweight", "normal", "overweight", "obese"))]
+obesity_summary <- dat[, .(min_bmi = min(bmi), max_bmi = max(bmi), nobs = .N), by = obesity_level]
+setorder(obesity_summary, min_bmi)
+obesity_summary
+```
+
+3. Create another categorical variable named "smoke_gas_exposure" that summarizes
+"Second Hand Smoke" and "Gas Stove." The variable should have four categories
+in total.
+
+```{r}
+dat[, smoke_gas_exposure := 
+      ifelse(smoke == 1 & gasstove == 1, "second hand smoke, gas stove",
+             ifelse(smoke == 1 & gasstove == 0, "second hand smoke, no gas stove",
+                    ifelse(smoke == 0 & gasstove == 1, "no second hand smoke, gas stove",
+                           ifelse(smoke == 0 & gasstove == 0, "no second hand smoke, no gas stove",
+                                  NA_character_))))]
+table(dat$smoke_gas_exposure, useNA = "i")
+```
+
+4. Create four summary tables showing the average (or proportion, if binary) and
+sd of “Forced expiratory volume in 1 second (ml)” and asthma indicator by
+town, sex, obesity level, and "smoke_gas_exposure."
+
+```{r}
+# average and sd of Forced expiratory volume in 1 second (ml)
+dat[, .(average = mean(fev, na.rm = T), std_dev = sd(fev, na.rm = T)), by = townname]
+dat[, .(average = mean(fev, na.rm = T), std_dev = sd(fev, na.rm = T)), by = male]
+dat[, .(average = mean(fev, na.rm = T), std_dev = sd(fev, na.rm = T)), by = obesity_level]
+dat[, .(average = mean(fev, na.rm = T), std_dev = sd(fev, na.rm = T)), by = smoke_gas_exposure]
+
+# proportion of asthma
+dat[, .(proportion = mean(asthma, na.rm = T) * 100), by = townname]
+dat[, .(proportion = mean(asthma, na.rm = T) * 100), by = male]
+dat[, .(proportion = mean(asthma, na.rm = T) * 100), by = obesity_level]
+dat[, .(proportion = mean(asthma, na.rm = T) * 100), by = smoke_gas_exposure]
+```
