@@ -60,8 +60,8 @@ length(unique(dat$sid))
 # impute missing values in male and hispanic
 mean_male <- mean(dat$male, na.rm = T)
 mean_hispanic <- mean(dat$hispanic, na.rm = T)
-dat[, male     := fifelse(male == NA_integer_, mean_male, male)]
-dat[, hispanic := fifelse(hispanic == NA_integer_, mean_hispanic, hispanic)]
+dat[, male     := fifelse(is.na(male), mean_male, male)]
+dat[, hispanic := fifelse(is.na(hispanic), mean_hispanic, hispanic)]
 ```
 
 2.  Create a new categorical variable named “obesity_level” using the
@@ -135,7 +135,8 @@ dat[, .(average = mean(fev, na.rm = T), std_dev = sd(fev, na.rm = T)), by = male
 ```
 
        male  average  std_dev
-    1:   NA 2031.265 330.6684
+    1:    0 1959.105 327.2948
+    2:    1 2103.819 318.2036
 
 ``` r
 dat[, .(average = mean(fev, na.rm = T), std_dev = sd(fev, na.rm = T)), by = obesity_level]
@@ -183,7 +184,8 @@ dat[, .(proportion = mean(asthma, na.rm = T) * 100), by = male]
 ```
 
        male proportion
-    1:   NA   14.62789
+    1:    0   12.08054
+    2:    1   17.27749
 
 ``` r
 dat[, .(proportion = mean(asthma, na.rm = T) * 100), by = obesity_level]

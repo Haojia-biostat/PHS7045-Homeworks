@@ -41,8 +41,8 @@ length(unique(dat$sid))
 # impute missing values in male and hispanic
 mean_male <- mean(dat$male, na.rm = T)
 mean_hispanic <- mean(dat$hispanic, na.rm = T)
-dat[, male     := fifelse(male == NA_integer_, mean_male, male)]
-dat[, hispanic := fifelse(hispanic == NA_integer_, mean_hispanic, hispanic)]
+dat[, male     := fifelse(is.na(male), mean_male, male)]
+dat[, hispanic := fifelse(is.na(hispanic), mean_hispanic, hispanic)]
 
 ```
 
