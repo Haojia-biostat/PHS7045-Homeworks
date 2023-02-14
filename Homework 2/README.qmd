@@ -21,7 +21,6 @@ Poisson with mean `lambda`.
 
 ```{r}
 #| label: p1-fun1
-#| eval: false
 fun1 <- function(n = 100, k = 4, lambda = 4) {
   x <- NULL
   
@@ -32,9 +31,7 @@ fun1 <- function(n = 100, k = 4, lambda = 4) {
 }
 
 fun1alt <- function(n = 100, k = 4, lambda = 4) {
-  
   matrix(rpois(n*k, lambda), ncol = k)
-  
 }
 
 # Benchmarking
@@ -48,7 +45,6 @@ bench::mark(
 
 ```{r}
 #| label: p1-fun2
-#| eval: false
 # Total row sums
 fun1 <- function(mat) {
   n <- nrow(mat)
@@ -60,7 +56,7 @@ fun1 <- function(mat) {
 }
 
 fun1alt <- function(mat) {
-  # YOUR CODE HERE
+  rowSums(mat)
 }
 
 # Cumulative sum by row
@@ -77,7 +73,7 @@ fun2 <- function(mat) {
 }
 
 fun2alt <- function(mat) {
-  # YOUR CODE HERE
+  t(apply(mat, 1, cumsum))
 }
 
 # Use the data with this code
@@ -112,13 +108,13 @@ fun2 <- function(x) {
 }
 
 fun2alt <- function(x) {
-  # YOUR CODE HERE
+  max.col(x)
 }
 
 # Benchmarking
 bench::mark(
-  fun2(),
-  fun2alt(), relative = TRUE
+  fun2(x),
+  fun2alt(x), relative = TRUE
 )
 ```
 

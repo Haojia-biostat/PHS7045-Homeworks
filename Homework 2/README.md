@@ -27,9 +27,7 @@ fun1 <- function(n = 100, k = 4, lambda = 4) {
 }
 
 fun1alt <- function(n = 100, k = 4, lambda = 4) {
-  
   matrix(rpois(n*k, lambda), ncol = k)
-  
 }
 
 # Benchmarking
@@ -38,6 +36,12 @@ bench::mark(
   fun1alt(), relative = TRUE, check = FALSE
 )
 ```
+
+    # A tibble: 2 × 6
+      expression   min median `itr/sec` mem_alloc `gc/sec`
+      <bch:expr> <dbl>  <dbl>     <dbl>     <dbl>    <dbl>
+    1 fun1()      16.7   20.9       1        62.4     2.85
+    2 fun1alt()    1      1        20.0       1       1   
 
 2.  Like before, speed up the following functions (it is OK to use
     StackOverflow)
@@ -54,7 +58,7 @@ fun1 <- function(mat) {
 }
 
 fun1alt <- function(mat) {
-  # YOUR CODE HERE
+  rowSums(mat)
 }
 
 # Cumulative sum by row
@@ -71,7 +75,7 @@ fun2 <- function(mat) {
 }
 
 fun2alt <- function(mat) {
-  # YOUR CODE HERE
+  t(apply(mat, 1, cumsum))
 }
 
 # Use the data with this code
@@ -83,13 +87,27 @@ bench::mark(
   fun1(dat),
   fun1alt(dat), relative = TRUE
 )
+```
 
+    # A tibble: 2 × 6
+      expression     min median `itr/sec` mem_alloc `gc/sec`
+      <bch:expr>   <dbl>  <dbl>     <dbl>     <dbl>    <dbl>
+    1 fun1(dat)     4.78   5.29      1         196.     7.18
+    2 fun1alt(dat)  1      1         5.84        1      1   
+
+``` r
 # Test for the second
 bench::mark(
   fun2(dat),
   fun2alt(dat), relative = TRUE
 )
 ```
+
+    # A tibble: 2 × 6
+      expression     min median `itr/sec` mem_alloc `gc/sec`
+      <bch:expr>   <dbl>  <dbl>     <dbl>     <dbl>    <dbl>
+    1 fun2(dat)     4.75   3.48      1         1         1  
+    2 fun2alt(dat)  1      1         3.45      5.29     14.8
 
 3.  Find the column max (hint: Check out the function `max.col()`).
 
@@ -104,13 +122,13 @@ fun2 <- function(x) {
 }
 
 fun2alt <- function(x) {
-  # YOUR CODE HERE
+  max.col(x)
 }
 
 # Benchmarking
 bench::mark(
-  fun2(),
-  fun2alt(), relative = TRUE
+  fun2(x),
+  fun2alt(x), relative = TRUE
 )
 ```
 
