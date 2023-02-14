@@ -1,27 +1,22 @@
----
-title: "Homework 2"
-author: "Haojia Li"
-format: 
-  gfm: default
-date: "`r Sys.Date()`"
----
+Homework 2
+================
+Haojia Li
+2/14/23
 
 # Background
 
-For this assignment, you'll be quested with speeding up some code using what
-you have learned about vectorization and Rcpp.
+For this assignment, you’ll be quested with speeding up some code using
+what you have learned about vectorization and Rcpp.
 
 ## Part 1: Vectorizing code
 
-The following functions can be written to be more efficient without using
-parallel computing:
+The following functions can be written to be more efficient without
+using parallel computing:
 
-1. This function generates a `n x k` dataset with all its entries distributed
-Poisson with mean `lambda`.
+1.  This function generates a `n x k` dataset with all its entries
+    distributed Poisson with mean `lambda`.
 
-```{r}
-#| label: p1-fun1
-#| eval: false
+``` r
 fun1 <- function(n = 100, k = 4, lambda = 4) {
   x <- NULL
   
@@ -44,11 +39,10 @@ bench::mark(
 )
 ```
 
-2. Like before, speed up the following functions (it is OK to use StackOverflow)
+2.  Like before, speed up the following functions (it is OK to use
+    StackOverflow)
 
-```{r}
-#| label: p1-fun2
-#| eval: false
+``` r
 # Total row sums
 fun1 <- function(mat) {
   n <- nrow(mat)
@@ -99,9 +93,7 @@ bench::mark(
 
 3.  Find the column max (hint: Check out the function `max.col()`).
 
-```{r}
-#| label: p1-fun3
-#| eval: false
+``` r
 # Data Generating Process (10 x 10,000 matrix)
 set.seed(1234)
 x <- matrix(rnorm(1e4), nrow=10)
@@ -124,12 +116,14 @@ bench::mark(
 
 ## Part 2: Rcpp code
 
-As we saw in the Rcpp week, vectorization may not be the best solution. For this
-part, you must write a function using Rcpp that implements the propensity score
-matching algorithm. You can use [Week 5's lab](https://github.com/UofUEpiBio/PHS7045-advanced-programming/issues/8#issuecomment-1424974938) as a starting point for the problem. Your C++ file
-should look something like the following:
+As we saw in the Rcpp week, vectorization may not be the best solution.
+For this part, you must write a function using Rcpp that implements the
+propensity score matching algorithm. You can use [Week 5’s
+lab](https://github.com/UofUEpiBio/PHS7045-advanced-programming/issues/8#issuecomment-1424974938)
+as a starting point for the problem. Your C++ file should look something
+like the following:
 
-```cpp
+``` cpp
 #include<Rcpp.h>
 
 using namespace Rcpp;
