@@ -1,7 +1,7 @@
 Homework 2
 ================
 Haojia Li
-2/14/23
+2/15/23
 
 # Background
 
@@ -40,8 +40,8 @@ bench::mark(
     # A tibble: 2 × 6
       expression   min median `itr/sec` mem_alloc `gc/sec`
       <bch:expr> <dbl>  <dbl>     <dbl>     <dbl>    <dbl>
-    1 fun1()      16.7   20.9       1        62.4     2.85
-    2 fun1alt()    1      1        20.0       1       1   
+    1 fun1()      15.8   19.8       1        62.4     3.76
+    2 fun1alt()    1      1        16.9       1       1   
 
 2.  Like before, speed up the following functions (it is OK to use
     StackOverflow)
@@ -92,8 +92,8 @@ bench::mark(
     # A tibble: 2 × 6
       expression     min median `itr/sec` mem_alloc `gc/sec`
       <bch:expr>   <dbl>  <dbl>     <dbl>     <dbl>    <dbl>
-    1 fun1(dat)     4.78   5.29      1         196.     7.18
-    2 fun1alt(dat)  1      1         5.84        1      1   
+    1 fun1(dat)     4.89   5.35      1         196.     7.02
+    2 fun1alt(dat)  1      1         5.77        1      1   
 
 ``` r
 # Test for the second
@@ -106,8 +106,8 @@ bench::mark(
     # A tibble: 2 × 6
       expression     min median `itr/sec` mem_alloc `gc/sec`
       <bch:expr>   <dbl>  <dbl>     <dbl>     <dbl>    <dbl>
-    1 fun2(dat)     4.75   3.48      1         1         1  
-    2 fun2alt(dat)  1      1         3.45      5.29     14.8
+    1 fun2(dat)     4.62   3.43      1         1         NaN
+    2 fun2alt(dat)  1      1         3.31      5.29      Inf
 
 3.  Find the column max (hint: Check out the function `max.col()`).
 
@@ -121,8 +121,11 @@ fun2 <- function(x) {
   apply(x, 2, max)
 }
 
+max.row <- function(x) {
+  max.col(t(x))
+}
 fun2alt <- function(x) {
-  max.col(x)
+  diag(x[max.row(x),])
 }
 
 # Benchmarking
@@ -131,6 +134,12 @@ bench::mark(
   fun2alt(x), relative = TRUE
 )
 ```
+
+    # A tibble: 2 × 6
+      expression   min median `itr/sec` mem_alloc `gc/sec`
+      <bch:expr> <dbl>  <dbl>     <dbl>     <dbl>    <dbl>
+    1 fun2(x)     1      1         1.13       1       1   
+    2 fun2alt(x)  1.99   1.01      1         78.3     5.97
 
 ## Part 2: Rcpp code
 
