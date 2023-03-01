@@ -1,7 +1,7 @@
 Homework 2
 ================
 Haojia Li
-2/15/23
+2/28/23
 
 # Background
 
@@ -40,8 +40,8 @@ bench::mark(
     # A tibble: 2 × 6
       expression   min median `itr/sec` mem_alloc `gc/sec`
       <bch:expr> <dbl>  <dbl>     <dbl>     <dbl>    <dbl>
-    1 fun1()      15.8   19.8       1        62.4     3.76
-    2 fun1alt()    1      1        16.9       1       1   
+    1 fun1()      17.5   23.1       1        62.4     2.46
+    2 fun1alt()    1      1        21.9       1       1   
 
 2.  Like before, speed up the following functions (it is OK to use
     StackOverflow)
@@ -92,8 +92,8 @@ bench::mark(
     # A tibble: 2 × 6
       expression     min median `itr/sec` mem_alloc `gc/sec`
       <bch:expr>   <dbl>  <dbl>     <dbl>     <dbl>    <dbl>
-    1 fun1(dat)     4.89   5.35      1         196.     7.02
-    2 fun1alt(dat)  1      1         5.77        1      1   
+    1 fun1(dat)     4.84   5.84      1         196.     7.28
+    2 fun1alt(dat)  1      1         6.13        1      1   
 
 ``` r
 # Test for the second
@@ -106,8 +106,8 @@ bench::mark(
     # A tibble: 2 × 6
       expression     min median `itr/sec` mem_alloc `gc/sec`
       <bch:expr>   <dbl>  <dbl>     <dbl>     <dbl>    <dbl>
-    1 fun2(dat)     4.62   3.43      1         1         NaN
-    2 fun2alt(dat)  1      1         3.31      5.29      Inf
+    1 fun2(dat)     4.55   3.45      1         1         NaN
+    2 fun2alt(dat)  1      1         3.33      5.29      Inf
 
 3.  Find the column max (hint: Check out the function `max.col()`).
 
@@ -121,25 +121,33 @@ fun2 <- function(x) {
   apply(x, 2, max)
 }
 
-max.row <- function(x) {
-  max.col(t(x))
-}
 fun2alt <- function(x) {
-  diag(x[max.row(x),])
+  max_row_indices <- max.col(t(x))
+  max_col <- NULL
+  for(j in 1:ncol(x)) {
+    max_col[j] <- x[max_row_indices[j], j]
+  }
+  return(max_col)
+}
+
+fun2alt1 <- function(x) {
+  matrixStats::colMaxs(x)
 }
 
 # Benchmarking
 bench::mark(
   fun2(x),
-  fun2alt(x), relative = TRUE
+  fun2alt(x),
+  fun2alt1(x), relative = TRUE
 )
 ```
 
-    # A tibble: 2 × 6
-      expression   min median `itr/sec` mem_alloc `gc/sec`
-      <bch:expr> <dbl>  <dbl>     <dbl>     <dbl>    <dbl>
-    1 fun2(x)     1      1         1.13       1       1   
-    2 fun2alt(x)  1.99   1.01      1         78.3     5.97
+    # A tibble: 3 × 6
+      expression    min median `itr/sec` mem_alloc `gc/sec`
+      <bch:expr>  <dbl>  <dbl>     <dbl>     <dbl>    <dbl>
+    1 fun2(x)     21.9   22.8       1         1        6.18
+    2 fun2alt(x)   7.56   8.88      2.58      2.87     5.36
+    3 fun2alt1(x)  1      1        22.2       1.41     1   
 
 ## Part 2: Rcpp code
 
@@ -150,30 +158,67 @@ lab](https://github.com/UofUEpiBio/PHS7045-advanced-programming/issues/8#issueco
 as a starting point for the problem. Your C++ file should look something
 like the following:
 
-``` cpp
+``` rcpp
 #include<Rcpp.h>
 
 using namespace Rcpp;
 
+// [[Rcpp::export]]
 List psmatch(
-NumericVector pscores,
-LogicalVector is_treated
-)
-{
-/*... setup the problem creating the output...*/
+    NumericVector pscores,
+    LogicalVector is_treated
+) {
+  
+  // check for lengths
+  if (pscores.size() != is_treated.size())
+    stop("Error: the length of two inputs are not identical");
+  
+  // check whether both treated and untreated individuals are included
+  int n = static_cast<int>(pscores.size());
+  if (sum(is_treated) == n || sum(is_treated) == 0)
+    stop("Error: there should be at least one individual in both group");
 
-/*
-... Implement your matching (start from Week 5's lab)... 
-... You have to consider that matches are done againts groups, i.e.,
-Treated (is_treated == true) must be matched to control 
-(is_treated == false)  
-*/
-
-// Returning
-return List::create(
-_["match_id"] = /*...*/
-_["match_pscore"] = /*...*/,
-);
-
+  // setup the problem creating the output
+  IntegerVector indices(n);
+  NumericVector values(n);
+  values.fill(std::numeric_limits< double >::max());
+  
+  // Implement matching
+  for (int i = 0; i < n; ++i) {
+    
+    // Instead of allocating new memory, we can point by reference
+    // (saves operations)
+    double & cur_best = values[i]; 
+    auto   & cur_i    = indices[i];
+    
+    for (int j = 0; j < i; ++j) {
+      
+      // skip to the next if the two pscore compared belong to the same group
+      if (is_treated[i] == is_treated[j])
+        continue;
+      
+      // If it is lower, then update
+      double d = std::abs(pscores[i] - pscores[j]);
+      if (d < cur_best) {
+        cur_best = d;
+        cur_i    = j;
+      }
+      if (d < values[j]) {
+        values[j] = d;
+        indices[j] = i;
+      }
+      
+    }
+    
+  }
+  for (int i = 0; i < n; ++i) 
+    values[i] = pscores[indices[i]];
+  
+  // Returning
+  return List::create(
+    _["match_id"] = indices + 1, // We add one to match R's indices
+    _["match_pscore"] = values
+  );
+  
 }
 ```
